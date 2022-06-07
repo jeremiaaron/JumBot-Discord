@@ -2,43 +2,46 @@ import discord
 from discord.ext import commands
 import youtube_dl
 import os
+from dotenv import load_dotenv
 
 bot = commands.Bot(command_prefix='!')
+queue_list = []
 
 
-@bot.command()
-async def play(ctx, url: str):
-    music = os.path.isfile("music.mp3")
+async def append_queue(song):
+    queue_list.append(song)
 
-    try:
-        if music:
-            os.remove("music.mp3")
-    except PermissionError:
-        await ctx.send("Please wait for me to stop singing or force me using the 'stop' command")
-        return
 
-    voice_channel = discord.utils.get(ctx.guild.voice_channels, name="General")
-
-    await voice_channel.connect()
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+async def play_song(ctx, url):
+    voice_client = ctx.message.guild.voice_client
 
     ydl_opts = {'format': 'bestaudio/best', 'noplaylist':'True'}
     ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
+        song_title = info.get('title')
+
+        await append_queue(song_title)
+        await ctx.send('Playing {}'.format(song_title))
+
         video_link = info['formats'][0]['url']
-        source = await discord.FFmpegOpusAudio.from_probe(video_link, **ffmpeg_options)
-        voice.play(discord.FFmpegPCMAudio(video_link, **ffmpeg_options))
+        voice_client.play(discord.FFmpegPCMAudio(video_link, **ffmpeg_options))
 
 
-@bot.command()
-async def leave(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    if voice.is_connected():
-        await voice.disconnect()
-    else:
-        await ctx.send("JumBot is not connected to any channel yet")
+@bot.command(name="play", help="Plays a song")
+async def play(ctx, url: str):
+    voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+
+    if not ctx.message.author.voice:
+        await ctx.send("You are not connected to a voice channel yet!")
+        return
+    elif ctx.message.author.voice and voice_client is None:
+        voice_channel = ctx.message.author.voice.channel
+        await voice_channel.connect()
+
+    async with ctx.typing():
+        await play_song(ctx, url)
 
 
 @bot.command()
@@ -61,16 +64,45 @@ async def resume(ctx):
         await ctx.send("JumBot is already singing currently")
 
 
-@bot.command()
+@bot.command(name="stop", help="Stops playing the current music and disconnects JumBot from the voice channel")
 async def stop(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    voice.stop()
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_connected():
+        await voice_client.disconnect()
+    else:
+        await ctx.send("JumBot is not connected to any channel yet")
+
+
+@bot.command()
+async def remove(ctx, index: int):
+    if len(queue_list) == 0:
+        ctx.send('There is no song in the queue')
+    elif index >= len(queue_list)+1 or index < 1:
+        ctx.send('Song does not exist in the queue')
+    else:
+        queue.pop(index-1)
+
+
+@bot.command(name="queue", help="Displays the current playlist of songs")
+async def queue(ctx):
+    if len(queue_list) == 0:
+        await ctx.send('There is no song in the queue')
+    else:
+        for index, song in enumerate(queue_list):
+            await ctx.send('{}: {}'.format(index+1, song))
+
+
+@bot.event
+async def on_ready():
+    print('JumBot is online!')
 
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Wrong command input!")
+        await ctx.send("Incorrect command input!")
 
 
-bot.run("OTgzMzg4OTc4MzMxOTIyNDgy.Gj-dgj.dhrm5m2kSoy_YrsRR-M8yRcpxmXNrQCRmKHGxQ")
+load_dotenv()
+SECRET_TOKEN = os.getenv('SECRET_TOKEN')
+bot.run(SECRET_TOKEN)
