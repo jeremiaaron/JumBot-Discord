@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4c8f7d04-5010-46a2-b1a5-ccad4c51e127" name="Changes" comment="Fixed commands, added embed info and playing song using keyword(s)">
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-    </list>
+    <list default="true" id="4c8f7d04-5010-46a2-b1a5-ccad4c51e127" name="Changes" comment="Fixed commands, added embed info and playing song using keyword(s)" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
