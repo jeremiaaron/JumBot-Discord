@@ -24,7 +24,8 @@ async def check_queue(ctx, server_id):
             ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
                               'options': '-vn'}
             voice_client.play(
-                discord.FFmpegPCMAudio(video_link, **ffmpeg_options),
+                # discord.FFmpegPCMAudio(video_link, **ffmpeg_options),
+                await discord.FFmpegOpusAudio.from_probe(video_link, **ffmpeg_options),
                 after=lambda e:
                 print('Player error: %s' % e) if e else bot.loop.create_task(check_queue(ctx, ctx.message.guild.id))
             )
@@ -85,7 +86,8 @@ async def play(ctx, *, url: str):
             ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
                               'options': '-vn'}
             voice_client.play(
-                discord.FFmpegPCMAudio(video_link, **ffmpeg_options),
+                # discord.FFmpegPCMAudio(video_link, **ffmpeg_options),
+                await discord.FFmpegOpusAudio.from_probe(video_link, **ffmpeg_options),
                 after=lambda e:
                 print('Player error: %s' % e) if e else bot.loop.create_task(check_queue(ctx, ctx.message.guild.id))
             )
