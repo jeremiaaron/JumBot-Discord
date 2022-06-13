@@ -42,7 +42,7 @@ async def check_queue(ctx, server_id):
         await ctx.message.channel.send(embed=embed_msg)
 
 
-# Command to play song with 'p'
+# Command to play song with 'play'
 @bot.command(name="play", help="Plays or queues a song")
 async def play(ctx, *, url: str):
     voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)
