@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4c8f7d04-5010-46a2-b1a5-ccad4c51e127" name="Changes" comment="Additional messages for skip and remove, fixed skip when queue is empty and wrong requester info, added comments">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="4c8f7d04-5010-46a2-b1a5-ccad4c51e127" name="Changes" comment="Now can play a whole playlist, added clear queue command, added queue pagination">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/jumbot.py" beforeDir="false" afterPath="$PROJECT_DIR$/jumbot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,7 +107,14 @@
       <option name="project" value="LOCAL" />
       <updated>1655123236912</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Now can play a whole playlist, added clear queue command, added queue pagination">
+      <created>1655963897666</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1655963897666</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -136,6 +141,7 @@
     <MESSAGE value="Fixed skip," />
     <MESSAGE value="Fixed commands, added embed info and playing song using keyword(s)" />
     <MESSAGE value="Additional messages for skip and remove, fixed skip when queue is empty and wrong requester info, added comments" />
-    <option name="LAST_COMMIT_MESSAGE" value="Additional messages for skip and remove, fixed skip when queue is empty and wrong requester info, added comments" />
+    <MESSAGE value="Now can play a whole playlist, added clear queue command, added queue pagination" />
+    <option name="LAST_COMMIT_MESSAGE" value="Now can play a whole playlist, added clear queue command, added queue pagination" />
   </component>
 </project>

@@ -21,9 +21,17 @@ async def check_queue(ctx, server_id):
         uploader = info.get('uploader')
         song_title = info.get('title')
         duration = info.get('duration')
-        video_link = info.get('url')
         requester = info.get('requester')
         del queue_dict[server_id][0]
+
+        # Extract video streaming link from YouTube URL
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': 'True',
+        }
+        with youtube_dl.YoutubeDL(ydl_opts) as ydlp:
+            video_info = ydlp.extract_info("https://www.youtube.com/watch?v={}".format(song_id), download=False)
+            video_link = video_info['formats'][0]['url']
 
         # Play the song and display song information with embed message
         async with ctx.typing():
@@ -38,7 +46,7 @@ async def check_queue(ctx, server_id):
             embed_msg = discord.Embed(title=song_title, url="https://youtu.be/{}".format(song_id), color=0xd9155a)
             embed_msg.set_thumbnail(url="https://img.youtube.com/vi/{}/0.jpg".format(song_id))
             embed_msg.add_field(name="Uploaded by", value=uploader, inline=False)
-            embed_msg.add_field(name="Duration", value='{:02d}:{:02d}'.format(duration // 60, duration % 60), inline=True)
+            embed_msg.add_field(name="Duration", value='{:02d}:{:02d}'.format(int(duration // 60), int(duration % 60)), inline=True)
             embed_msg.add_field(name="Requested by", value=requester, inline=True)
         await ctx.message.channel.send(embed=embed_msg)
 
@@ -50,17 +58,16 @@ async def queue_playlist(ctx, info):
 
     # Loops through every song in the playlist and add them to the queue
     for i in range(0, len(info['entries'])):
-        video_link = info['entries'][i]['formats'][0]['url']
         song_id = info['entries'][i].get('id')
         uploader = info['entries'][i].get('uploader')
         song_title = info['entries'][i].get('title')
         duration = info['entries'][i].get('duration')
         if server_id in queue_dict:
             queue_dict[server_id].append({'id': song_id, 'uploader': uploader, 'title': song_title,
-                                          'duration': duration, 'url': video_link, 'requester': requester})
+                                          'duration': duration, 'requester': requester})
         else:
             queue_dict[server_id] = [{'id': song_id, 'uploader': uploader, 'title': song_title,
-                                      'duration': duration, 'url': video_link, 'requester': requester}]
+                                      'duration': duration, 'requester': requester}]
 
 
 # Command to play song with 'play'
@@ -79,38 +86,74 @@ async def play(ctx, *, url: str):
     voice_client = ctx.message.guild.voice_client
     server_id = ctx.message.guild.id
 
-    ydl_opts = {
+    # Youtube-DL options for extracting link ID only (skip download)
+    ydl_opts_extract = {
         'format': 'bestaudio/best',
+        'extract_flat': True,
+        'skip_download': True,
         'default_search': 'auto'
     }
-    is_playlist = False
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        async with ctx.typing():
-            info = ydl.extract_info(url, download=False)
+    # Youtube-DL options for playing a song
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'noplaylist': 'True',
+        'default_search': 'auto'
+    }
 
-            # Check whether user searched by keywords or played using URL
-            if 'entries' in info:
-                if len(info['entries']) > 1:
-                    is_playlist = True
-                    playlist_title = info['entries'][0]['playlist_title']
-                video_link = info['entries'][0]['formats'][0]['url']
-                song_id = info['entries'][0].get('id')
-                uploader = info['entries'][0].get('uploader')
-                song_title = info['entries'][0].get('title')
-                duration = info['entries'][0].get('duration')
-            elif 'formats' in info:
-                video_link = info['formats'][0]['url']
-                song_id = info.get('id')
-                uploader = info.get('uploader')
-                song_title = info.get('title')
-                duration = info.get('duration')
+    is_playlist = False  # Bool to detect if the user inputs a playlist
+
+    with youtube_dl.YoutubeDL(ydl_opts_extract) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+        if '_type' in info:
+            # If user inputs a YouTube playlist link
+            if info['_type'] == 'playlist':
+                is_playlist = True
+                # Extract info from the first video of the playlist (in case it is to be played immediately)
+                song_id = info['entries'][0]['id']
+                uploader = info['entries'][0]['uploader']
+                song_title = info['entries'][0]['title']
+                duration = info['entries'][0]['duration']
+                # # Extract video streaming link from YouTube URL
+                with youtube_dl.YoutubeDL(ydl_opts) as ydlp:
+                    video_info = ydlp.extract_info("https://www.youtube.com/watch?v={}".format(song_id), download=False)
+                    video_link = video_info['formats'][0]['url']
+            # If user searches using keywords or plays a video directly from a playlist
+            elif info['_type'] == 'url':
+                with youtube_dl.YoutubeDL(ydl_opts) as ydlp:
+                    video_info = ydlp.extract_info(info['webpage_url'], download=False)
+                    # If user searches using keywords
+                    if 'entries' in video_info:
+                        song_id = video_info['entries'][0]['id']
+                        uploader = video_info['entries'][0]['uploader']
+                        song_title = video_info['entries'][0]['title']
+                        duration = video_info['entries'][0]['duration']
+                        video_link = video_info['entries'][0]['formats'][0]['url']
+                    # If user plays a video directly from a playlist
+                    elif 'formats' in video_info:
+                        song_id = video_info['id']
+                        uploader = video_info['uploader']
+                        song_title = video_info['title']
+                        duration = video_info['duration']
+                        video_link = video_info['formats'][0]['url']
+        # If user inputs a single YouTube video link
+        else:
+            song_id = info['id']
+            uploader = info['uploader']
+            song_title = info['title']
+            duration = info['duration']
+            # Extract video streaming link from YouTube URL
+            with youtube_dl.YoutubeDL(ydl_opts) as ydlp:
+                video_info = ydlp.extract_info("https://www.youtube.com/watch?v={}".format(song_id), download=False)
+                video_link = video_info['formats'][0]['url']
+
     requester = ctx.message.author.name
 
     ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
                       'options': '-vn'}
 
-    # Nested function to start playing a song
+    # Nested function to play the initial song
     async def play_song():
         async with ctx.typing():
             voice_client.play(
@@ -121,7 +164,7 @@ async def play(ctx, *, url: str):
             embed_msg = discord.Embed(title=song_title, url="https://youtu.be/{}".format(song_id), color=0xd9155a)
             embed_msg.set_thumbnail(url="https://img.youtube.com/vi/{}/0.jpg".format(song_id))
             embed_msg.add_field(name="Uploaded by", value=uploader, inline=False)
-            embed_msg.add_field(name="Duration", value='{:02d}:{:02d}'.format(duration // 60, duration % 60), inline=True)
+            embed_msg.add_field(name="Duration", value='{:02d}:{:02d}'.format(int(duration // 60), int(duration % 60)), inline=True)
             embed_msg.add_field(name="Requested by", value=requester, inline=True)
         await ctx.message.channel.send(embed=embed_msg)
 
@@ -130,21 +173,21 @@ async def play(ctx, *, url: str):
         async with ctx.typing():
             if server_id in queue_dict:
                 queue_dict[server_id].append({'id': song_id, 'uploader': uploader, 'title': song_title,
-                                              'duration': duration, 'url': video_link, 'requester': requester})
+                                              'duration': duration, 'requester': requester})
             else:
                 queue_dict[server_id] = [{'id': song_id, 'uploader': uploader, 'title': song_title,
-                                          'duration': duration, 'url': video_link, 'requester': requester}]
+                                          'duration': duration, 'requester': requester}]
         await ctx.send('Added `{}` to the queue at number `{}`'.format(song_title, len(queue_dict[server_id])))
     # If the URL is a playlist and the bot is playing a song
     elif is_playlist and voice_client.is_playing():
         async with ctx.typing():
             await queue_playlist(ctx, info)
-        await ctx.send('Added `{}` playlist to the queue'.format(playlist_title))
+        await ctx.send('Added `{}` tracks from `{}` playlist to the queue'.format(len(info['entries']), info['title']))
     # If the URL is a playlist and the bot is not playing a song
     elif is_playlist and not voice_client.is_playing():
         async with ctx.typing():
             await queue_playlist(ctx, info)
-        await ctx.send('Added `{}` playlist to the queue'.format(playlist_title))
+        await ctx.send('Added `{}` tracks from `{}` playlist to the queue'.format(len(info['entries']), info['title']))
         queue_dict[server_id].pop(0)
         await play_song()
     # If the URL is not a playlist and the bot is not playing a song
