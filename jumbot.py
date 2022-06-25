@@ -4,10 +4,12 @@ import youtube_dl
 import os
 from dotenv import load_dotenv
 from math import ceil
+from random import randint
 
-# Initialize bot with prefix '=' and queue dictionary
-bot = commands.Bot(command_prefix='=')
-queue_dict = {}
+activity = discord.Game(name="a song | =help")  # Set bot activity in Discord
+bot = commands.Bot(command_prefix='=', activity=activity, status=discord.Status.idle)  # Initialize bot with prefix '='
+queue_dict = {}  # Dictionary for song queue in different servers
+shuffle_info = {}  # Dictionary for shuffle info in different servers
 
 
 # Function to check queue for the next available song
@@ -15,14 +17,21 @@ async def check_queue(ctx, server_id):
     if len(queue_dict) != 0 and queue_dict[server_id]:
         voice_client = ctx.message.guild.voice_client
 
+        # If shuffle is disabled, take index 0 (first song in queue)
+        if server_id not in shuffle_info or not shuffle_info[server_id]:
+            index = 0
+        # If shuffle is enabled, take a random index (any song in queue)
+        else:
+            index = randint(0, len(queue_dict[server_id])-1)
+
         # Obtain information from queue dictionary
-        info = queue_dict[server_id][0]
+        info = queue_dict[server_id][index]
         song_id = info.get('id')
         uploader = info.get('uploader')
         song_title = info.get('title')
         duration = info.get('duration')
         requester = info.get('requester')
-        del queue_dict[server_id][0]
+        del queue_dict[server_id][index]
 
         # Extract video streaming link from YouTube URL
         ydl_opts = {
@@ -308,7 +317,26 @@ async def clear(ctx):
             await ctx.send('The queue is already empty')
         else:
             del queue_dict[server_id]
-    await ctx.send('Cleared the whole queue')
+            await ctx.send('Cleared the whole queue')
+
+
+# Command to enable/disable shuffle
+@bot.command(name="shuffle", help="Enable/disable queue shuffle")
+async def shuffle(ctx):
+    async with ctx.typing():
+        server_id = ctx.message.guild.id
+
+        # If shuffle info does not exist or False, set it to True
+        if server_id not in shuffle_info or not shuffle_info[server_id]:
+            shuffle_info[server_id] = True
+        # If shuffle info is True, set it to False
+        elif shuffle_info[server_id]:
+            shuffle_info[server_id] = False
+
+    if shuffle_info[server_id]:
+        await ctx.send("Shuffle is now enabled")
+    else:
+        await ctx.send("Shuffle is now disabled")
 
 
 # Print a message to the console when bot is ready
